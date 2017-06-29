@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import Spotify from 'spotify-web-api-js';
+import YouTube from 'youtube-node';
+import YouTubePlayer from 'youtube-player';
 import {requestAuthorization, implicitGrant} from './utils.js';
 import annyang from 'annyang';
 import './App.css';
@@ -8,13 +10,28 @@ import './App.css';
 var audio = new Audio();
 var s = new Spotify();
 
+var yt = new YouTube();
+yt.setKey('AIzaSyA_5__FkmspfXLvOqajSVohXaBm_PZnXvE');
+
+let player;
+
 
 class App extends Component {
 
   constructor(props) {
     super(props);
-    // var Spotify = require('spotify-web-api-js');  
+    this.state = {
+      id: ""
+    };
+
+  }
+
+  componentDidMount() {
+    let that = this;
+    var ytVidId;
+
     if (annyang) {
+      console.log("annyang speech recognition successfully on");
       // Let's define our commands. First the text we expect, and then the function it should call
       var commands = {
         'stop': function() {
@@ -53,20 +70,39 @@ class App extends Component {
             }, function(err) {
               console.error(err);
             })
-              .then(function() {
-                console.log(playlistID, playlistName, playlistOwner);
-                s.getPlaylistTracks(playlistOwner, playlistID)
-                  .then(function(data) {
-                    console.log(data.items);
-                    let r = Math.floor((Math.random() * data.items.length) + 1);
-                    var track = data.items[r].track; // make this randomly picked track
-                    audio.src = track.preview_url;
-                    audio.play();
-                    console.log("playing " + track.name + " by " + track.artists[0].name);
-                }, function(err) {
-                    console.error(err);
+            .then(function() {
+              console.log(playlistID, playlistName, playlistOwner);
+              s.getPlaylistTracks(playlistOwner, playlistID)
+                .then(function(data) {
+                  // console.log(data.items);
+                  let r = Math.floor((Math.random() * data.items.length) + 1);
+                  var track = data.items[r].track; // make this randomly picked track
+                  // audio.src = track.preview_url;
+                  // audio.play();
+                  console.log("playing " + track.name + " by " + track.artists[0].name);
+                  yt.search(track.name + track.artists[0].name, 2, function(error, result) {
+                    if (error) {
+                      console.error(error);
+                    }
+                    else {
+                      console.log(that);
+                      // console.log(result.items);
+                      ytVidId = result.items[0].id.videoId;
+                      that.setState({
+                        id: ytVidId
+                      });
+                      console.log(result.items[0]);
+                      console.log(ytVidId);
+                      console.log(that.state);
+                      player = YouTubePlayer('player-1');
+                      player.cueVideoById(that.state.id);
+                      player.playVideo();
+                    }
                   });
+              }, function(err) {
+                  console.error(err);
                 });
+              });
         },
 
         ':nomatch': function(message) {
@@ -128,6 +164,9 @@ class App extends Component {
         <button onClick={this.setToken} type="button">
           implicitGrant
         </button>        
+
+        <div id='player-1'></div>
+        <div>{this.state.id}</div>
 
       </div>
     );
