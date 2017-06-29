@@ -38,6 +38,37 @@ class App extends Component {
             });
         },
 
+        "I'm feeling *emotion": function(emotion) {
+          console.log("I'm feeling " + emotion);
+
+          var playlistID, playlistName, playlistOwner;
+          // get playlist
+          s.getCategoryPlaylists("mood")
+            .then(function(data) {
+              console.log(data.playlists.items[0]);
+              let firstResult = data.playlists.items[0];
+              playlistID = firstResult.id;
+              playlistOwner = firstResult.owner.id;
+              playlistName = firstResult.name;
+            }, function(err) {
+              console.error(err);
+            })
+              .then(function() {
+                console.log(playlistID, playlistName, playlistOwner);
+                s.getPlaylistTracks(playlistOwner, playlistID)
+                  .then(function(data) {
+                    console.log(data.items);
+                    let r = Math.floor((Math.random() * data.items.length) + 1);
+                    var track = data.items[r].track; // make this randomly picked track
+                    audio.src = track.preview_url;
+                    audio.play();
+                    console.log("playing " + track.name + " by " + track.artists[0].name);
+                }, function(err) {
+                    console.error(err);
+                  });
+                });
+        },
+
         ':nomatch': function(message) {
           console.log("Command spoken has no match");
         }

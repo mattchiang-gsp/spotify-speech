@@ -55,8 +55,6 @@ export function implicitGrant() {
 
   var params = getHashParams();
 
-  console.log(params);
-
   var access_token = params.access_token,
       state = params.state,
       storedState = localStorage.getItem(stateKey);
