@@ -13,8 +13,6 @@ var s = new Spotify();
 var yt = new YouTube();
 yt.setKey('AIzaSyA_5__FkmspfXLvOqajSVohXaBm_PZnXvE');
 
-let player;
-
 
 class App extends Component {
 
@@ -27,6 +25,7 @@ class App extends Component {
   }
 
   componentDidMount() {
+    const player = YouTubePlayer('player-1');
     let that = this;
     var ytVidId;
 
@@ -94,8 +93,9 @@ class App extends Component {
                       console.log(result.items[0]);
                       console.log(ytVidId);
                       console.log(that.state);
-                      player = YouTubePlayer('player-1');
-                      player.cueVideoById(that.state.id);
+                      // player = YouTubePlayer('player-1');
+                      player.stopVideo();
+                      player.loadVideoById(that.state.id);
                       player.playVideo();
                     }
                   });
@@ -122,6 +122,23 @@ class App extends Component {
 
   handleClick() {
     requestAuthorization();
+  }
+
+  changeVidId() {
+    const player = YouTubePlayer('player-1');
+    console.log(this.state.id);
+    let newId = this.state.id;
+    console.log("newId: " + newId);
+    player.pauseVideo();
+    player.loadVideoById(newId);
+    // player.stopVideo();
+    if (newId) {
+      // player.loadVideoById(newId);
+      // player.loadVideoById("j-K0MeOMt1k");
+    } else {
+      console.log("else")
+      // player.loadVideoById("j-K0MeOMt1k");
+    }
   }
 
   setToken() {
@@ -167,6 +184,10 @@ class App extends Component {
 
         <div id='player-1'></div>
         <div>{this.state.id}</div>
+
+        <button onClick={this.changeVidId.bind(this)} type="button">
+          Change vid id
+        </button>
 
       </div>
     );
