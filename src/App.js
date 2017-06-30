@@ -1,17 +1,18 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
-import Spotify from 'spotify-web-api-js';
-import YouTube from 'youtube-node';
-import YouTubePlayer from 'youtube-player';
-import {requestAuthorization, implicitGrant} from './utils.js';
-import annyang from 'annyang';
-import './App.css';
+import React, { Component } from 'react'
+import AuthMenu from './components/AuthMenu'
+import Video from './components/Video'
+import logo from './logo.svg'
+import Spotify from 'spotify-web-api-js'
+import YouTube from 'youtube-node'
+import YouTubePlayer from 'youtube-player'
+import {requestAuthorization, implicitGrant} from './spotifyUtils.js'
+import annyang from 'annyang'
+import './App.css'
 
-var audio = new Audio();
-var s = new Spotify();
-
-var yt = new YouTube();
-yt.setKey('AIzaSyA_5__FkmspfXLvOqajSVohXaBm_PZnXvE');
+const AUDIO = new Audio()
+const SPOTIFY = new Spotify()
+const YOUTUBE = new YouTube()
+YOUTUBE.setKey('AIzaSyA_5__FkmspfXLvOqajSVohXaBm_PZnXvE')
 
 
 class App extends Component {
@@ -25,169 +26,142 @@ class App extends Component {
   }
 
   componentDidMount() {
-    const player = YouTubePlayer('player-1');
-    let that = this;
-    var ytVidId;
+    const player = YouTubePlayer('player');
+    let App = this;
+    let ytVidId;
 
     if (annyang) {
-      console.log("annyang speech recognition successfully on");
-      // Let's define our commands. First the text we expect, and then the function it should call
-      var commands = {
-        'stop': function() {
-          audio.pause();
-          console.log("stopping");
-        },
-        'play *song': function(song) {
-          console.log(song);
-          
+      console.log("annyang speech recognition is successfully on")
+      
+      const commands = {
+        
+        'stop': () => {
+          AUDIO.pause()
+          console.log("Stopping the music")
+        }, 
 
-          s.searchTracks(song)
+        'play *song': (song) => {
+          console.log("User wants to play: " + song);        
+
+          SPOTIFY.searchTracks(song)
             .then(function(data) {
-              // var audio = new Audio();
-              console.log(data.tracks.items[0]);
-              var track = data.tracks.items[0];
-              audio.src = track.preview_url;
-              audio.play();
-              console.log("playing");
-            }, function(err) {
-              console.error(err);
-            });
-        },
-
-        "I'm feeling *emotion": function(emotion) {
-          console.log("I'm feeling " + emotion);
-
-          var playlistID, playlistName, playlistOwner;
-          // get playlist
-          s.getCategoryPlaylists("mood")
-            .then(function(data) {
-              console.log(data.playlists.items[0]);
-              let firstResult = data.playlists.items[0];
-              playlistID = firstResult.id;
-              playlistOwner = firstResult.owner.id;
-              playlistName = firstResult.name;
-            }, function(err) {
-              console.error(err);
+              var track = data.tracks.items[0]
+              AUDIO.src = track.preview_url
+              AUDIO.play()
+              console.log("Playing: " + song)
             })
-            .then(function() {
-              console.log(playlistID, playlistName, playlistOwner);
-              s.getPlaylistTracks(playlistOwner, playlistID)
+            .catch( 
+              (err) => { 
+                console.log('Handle rejected promise (' + err + ') here. ')
+            })
+        },
+
+        "I'm feeling *emotion": (emotion) => {
+          console.log("I'm feeling " + emotion)
+
+          let playlistID, playlistName, playlistOwner
+          
+          // Get playlist
+          SPOTIFY.getCategoryPlaylists("mood")
+            .then(function(data) {
+              let firstResult = data.playlists.items[0]
+              playlistID = firstResult.id
+              playlistOwner = firstResult.owner.id
+              playlistName = firstResult.name
+            })
+            .then(function(data) {
+              console.log("Grabbed " + playlistName + " by " + playlistOwner)
+              SPOTIFY.getPlaylistTracks(playlistOwner, playlistID)
                 .then(function(data) {
-                  // console.log(data.items);
-                  let r = Math.floor((Math.random() * data.items.length) + 1);
-                  var track = data.items[r].track; // make this randomly picked track
-                  // audio.src = track.preview_url;
-                  // audio.play();
-                  console.log("playing " + track.name + " by " + track.artists[0].name);
-                  yt.search(track.name + track.artists[0].name, 2, function(error, result) {
+                  // Randomly pick a track from the playlist
+                  let r = Math.floor((Math.random() * data.items.length) + 1)
+                  let track = data.items[r].track
+                  console.log("Playing " + track.name + " by " + track.artists[0].name)
+                  YOUTUBE.search(track.name + track.artists[0].name, 2, function(error, result) {
                     if (error) {
-                      console.error(error);
+                      console.error(error)
                     }
                     else {
-                      console.log(that);
-                      // console.log(result.items);
-                      ytVidId = result.items[0].id.videoId;
-                      that.setState({
+                      ytVidId = result.items[0].id.videoId
+                      
+                      App.setState({
                         id: ytVidId
-                      });
-                      console.log(result.items[0]);
-                      console.log(ytVidId);
-                      console.log(that.state);
-                      // player = YouTubePlayer('player-1');
-                      player.stopVideo();
-                      player.loadVideoById(that.state.id);
-                      player.playVideo();
+                      })
+                      console.log(App.state)
+
+                      // player.stopVideo()
+                      player.loadVideoById(App.state.id)
+                      player.playVideo()
                     }
-                  });
-              }, function(err) {
-                  console.error(err);
-                });
-              });
+                  })
+              })
+                .catch(
+                  (err) => {
+                    console.log('Handle rejected promise (' + err + ') here grabbing YT video. ')
+                  })
+            })
         },
 
         ':nomatch': function(message) {
-          console.log("Command spoken has no match");
+          console.log("Command spoken has no match")
         }
-      };
+      }
 
       // Add our commands to annyang
-      annyang.addCommands(commands);
+      annyang.addCommands(commands)
 
       // Start listening on construction
-      annyang.start();
+      annyang.start()
     }
 
-    annyang.addCallback('error', function() { console.log("annyang startup error"); });
+    annyang.addCallback('error', function() { console.log("annyang startup error") })
   }
 
-  handleClick() {
-    requestAuthorization();
+  _onAuthClick = () => {
+    requestAuthorization()
   }
 
-  changeVidId() {
-    const player = YouTubePlayer('player-1');
-    console.log(this.state.id);
-    let newId = this.state.id;
-    console.log("newId: " + newId);
-    player.pauseVideo();
-    player.loadVideoById(newId);
-    // player.stopVideo();
-    if (newId) {
-      // player.loadVideoById(newId);
-      // player.loadVideoById("j-K0MeOMt1k");
-    } else {
-      console.log("else")
-      // player.loadVideoById("j-K0MeOMt1k");
-    }
+    // Set the access token
+  _onGrantClick = () => {
+    let token = implicitGrant()
+    SPOTIFY.setAccessToken(token)
   }
 
-  setToken() {
-    var token = implicitGrant();
-    s.setAccessToken(token);
-  }
-
-  // Music
-  playSong(songName) {
-    var query = songName;
-
-    s.searchTracks("heart don't stand a chance")
-      .then(function(data) {
-        // var audio = new Audio();
-        console.log(data.tracks.items[0]);
-        var track = data.tracks.items[0];
-        audio.src = track.preview_url;
-        audio.play();
-        console.log("playing");
-      }, function(err) {
-        console.error(err);
-      });
-  }
-
-
+  // Test for changing YT video URL
+  // changeVidId() {
+  //   const player = YouTubePlayer('player'); // why is this here?
+  //   console.log(this.state.id);
+  //   let newId = this.state.id;
+  //   console.log("newId: " + newId);
+  //   player.pauseVideo();
+  //   player.loadVideoById(newId);
+  //   // player.stopVideo();
+  //   if (newId) {
+  //     // player.loadVideoById(newId);
+  //     // player.loadVideoById("j-K0MeOMt1k");
+  //   } else {
+  //     console.log("else")
+  //     // player.loadVideoById("j-K0MeOMt1k");
+  //   }
+  // }
 
   render() {
     return (
       <div className="App">
         <div className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
-          <h2>Welcome to React</h2>
+          <h2>Play songs from Spotify with Speech Recognition</h2>
         </div>
         <p className="App-intro">
           To get started, edit <code>src/App.js</code> and save to reload.
         </p>
-        <button onClick={this.handleClick} type="button">
-          requestAuthorization
-        </button>
-        <button onClick={this.setToken} type="button">
-          implicitGrant
-        </button>        
 
-        <div id='player-1'></div>
-        <div>{this.state.id}</div>
+        <AuthMenu
+          onHandleAuthClick={this._onAuthClick}
+          onHandleGrantClick={this._onGrantClick}
+        />
 
-        <button onClick={this.changeVidId.bind(this)} type="button">
-          Change vid id
-        </button>
+        <Video></Video>       
 
       </div>
     );

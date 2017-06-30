@@ -23,5 +23,5 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
   },
-  "homepage": "heartbeat.com/spotify-speech"
+  "homepage": "heartbeatfont.com/spotify-speech"
 }
